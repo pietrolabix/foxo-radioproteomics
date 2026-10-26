@@ -38,6 +38,7 @@ all_prots = [c for c in df.columns if "_OID" in str(c)]
 X_all = df[all_prots].apply(ns["robust_numeric"])
 X_all = X_all.fillna(X_all.median()).values
 
+TABLE1_ALL = [(t, f, b, None) for t, f, b, _ in TABLE1]
 ROBUST = [
     ("efferocytosis", "firstorder_Energy", "resid", "Efferocytosis -> Energy (resid)"),
     ("foxo", "firstorder_TotalEnergy", "raw", "FoxO -> Total Energy (raw)"),
@@ -122,9 +123,10 @@ def random_null(size, y_np, n_sets, batch=250):
 out = {}
 
 # ---------------- A. Pathway specificity ----------------
+ONLY = os.environ.get("ONLY", "")
 print("\n=== A. Pathway specificity vs random protein sets ===", flush=True)
 rows = []
-for term, feat, branch, label in ROBUST[:3]:
+for term, feat, branch, label in (ROBUST[:3] if ONLY in ("", "A") else []):
         pw, X = pathway_X(term)
         obs = median_nested(X, target(feat, branch), N_REP_RANDOM)
         null = random_null(X.shape[1], target(feat, branch), N_RANDOM)
@@ -145,8 +147,9 @@ print(f"covariates available for {cov.notna().all(axis=1).sum()}/{len(ids)} pati
 Z = np.c_[np.ones(len(ids)), np.log(cov.voxel_vol_mm3.values), np.log(cov.mask_vol_ml.values)]
 ok = np.isfinite(Z).all(axis=1)
 rows = []
-for term, feat, branch, label in ROBUST:
+for term, feat, branch, _ in TABLE1_ALL:
     pw, X = pathway_X(term)
+    label = f"{pw}|{feat}|{branch}"
     y = target(feat, branch)[ok]
     Zk = Z[ok]
     y_adj = y - Zk @ np.linalg.lstsq(Zk, y, rcond=None)[0]
@@ -156,6 +159,9 @@ for term, feat, branch, label in ROBUST:
                  "share_pos": round(float(np.mean(q > 0)), 2)})
     print(rows[-1], flush=True)
 out["B_acquisition"] = pd.DataFrame(rows)
+out["B_acquisition"].to_csv("results/extra_acquisition_all.csv", index=False)
+if ONLY == "B":
+    sys.exit(0)
 
 # ---------------- C. Myocardial tissue ----------------
 print("\n=== C. Myocardial tissue proteome ===", flush=True)

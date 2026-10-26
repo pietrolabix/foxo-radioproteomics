@@ -38,12 +38,9 @@ nested = pd.read_csv("results/reanalysis_letter_results.csv").drop(columns="p_pe
 perm = pd.read_csv("results/reanalysis_letter_perm_gpu.csv")
 tab = nested.merge(perm[["pathway", "feature", "branch", "p_perm_nested"]],
                    on=["pathway", "feature", "branch"])
-ADJ = pd.read_excel("results/extra_analyses_letter.xlsx", sheet_name="B_acquisition").set_index("model")
-ADJ_KEY = {("Efferocytosis", "firstorder_Energy", "resid"): "Efferocytosis -> Energy (resid)",
-           ("FoxO_signaling_pathway", "firstorder_TotalEnergy", "raw"): "FoxO -> Total Energy (raw)",
-           ("Relaxin_signaling_pathway", "firstorder_Energy", "raw"): "Relaxin -> Energy (raw)",
-           ("NOD_like_receptor_signaling_pa", "glrlm_RunLengthNonUniformity", "resid"): "NOD-like -> RLNU (resid)",
-           ("Toll_like_receptor_signaling_p", "glrlm_RunLengthNonUniformity", "resid"): "Toll-like -> RLNU (resid)"}
+ADJ = pd.read_csv("results/extra_acquisition_all.csv").set_index("model")          # acquisition-adjusted nested Q2
+ADJ_P = pd.read_csv("results/reanalysis_letter_perm_gpu_acqadj.csv")                  # acquisition-adjusted permutations
+ADJ_P = {(r.pathway, r.feature, r.branch): r.p_perm_nested for r in ADJ_P.itertuples()}
 P_ADJ_LIJI = [0.0417, 0.2187, 0.7204, 0.7204, 1.0, 0.0036, 0.0549, 0.0645, 0.1204, 0.3601]
 tab["p_adj"] = P_ADJ_LIJI  # screen-wide Li & Ji adjustment, as in Table 1 of the full manuscript
 
@@ -65,20 +62,22 @@ def fmt_p(p):
 rows, robust = [], []
 for _, r in tab.iterrows():
     lo, hi = r["Q2_nested_IQR"].split("..")
-    key = ADJ_KEY.get((r["pathway"], r["feature"], r["branch"]))
-    adj_q2 = float(ADJ.loc[key, "nested_Q2_adjusted"]) if key else None
-    adj_txt = f"{adj_q2:.2f}" if key else "–"
+    key = f"{r['pathway']}|{r['feature']}|{r['branch']}"
+    adj_q2 = float(ADJ.loc[key, "nested_Q2_adjusted"])
+    adj_lo, adj_hi = (float(v) for v in ADJ.loc[key, "IQR"].split(" to "))
+    adj_p = ADJ_P[(r["pathway"], r["feature"], r["branch"])]
     rows.append([
         "Raw" if r["branch"] == "raw" else "Volume-residualized",
         PATHWAY[r["pathway"]], FEATURE[r["feature"]],
         f"{r['Q2_original_split']:.2f}", fmt_p(r["p_adj"]),
         f"{r['Q2_nested_median']:.2f} ({float(lo):.2f} to {float(hi):.2f})",
-        f"{r['share_nested_pos'] * 100:.0f}%", fmt_p(r["p_perm_nested"]), adj_txt,
+        fmt_p(r["p_perm_nested"]),
+        f"{adj_q2:.2f} ({adj_lo:.2f} to {adj_hi:.2f})", fmt_p(adj_p),
     ])
-    robust.append(float(lo) > 0 and adj_q2 is not None and adj_q2 > 0.1)
+    robust.append(adj_lo > 0 and adj_p < 0.01)
 
 header = ["Features", "Pathway", "Radiomic feature", "Screening\nQ²", "Screen-wide\nadjusted P",
-          "Nested Q², median\n(IQR)", "Repeats\nwith Q²>0", "Permutation\nP", "Nested Q²,\nacquisition-adj."]
+          "Nested Q², median\n(IQR)", "Permutation\nP", "Acquisition-adjusted\nnested Q² (IQR)", "Adjusted\npermutation P"]
 
 # --- Combined figure ---
 net = mpimg.imread(f"{NETWORK_BASENAME}.png")
@@ -95,7 +94,7 @@ ax_b = fig.add_axes([0.0, 0.0, 1.0, h_tab / (h_net + h_tab + 0.3)])
 ax_b.axis("off")
 ax_b.text(0.0, 1.08, "B", transform=ax_b.transAxes, fontsize=12, fontweight="bold", va="top")
 table = ax_b.table(cellText=rows, colLabels=header, loc="upper center", cellLoc="center",
-                   colWidths=[0.14, 0.12, 0.14, 0.07, 0.09, 0.15, 0.08, 0.09, 0.10],
+                   colWidths=[0.13, 0.11, 0.14, 0.07, 0.08, 0.15, 0.08, 0.15, 0.09],
                    bbox=[0.0, 0.0, 1.0, 1.0])
 table.auto_set_font_size(False)
 table.set_fontsize(5.6)

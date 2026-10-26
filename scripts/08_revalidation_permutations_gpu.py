@@ -8,6 +8,7 @@ folds only. Each permutation re-runs the whole nested pipeline; permutations
 are processed in batches with a vectorized NIPALS-free PLS1 (as in
 run_gpu_pls_cv from generate_figures.py).
 """
+import os
 import sys
 import numpy as np
 import pandas as pd
@@ -102,6 +103,19 @@ def statistic(X, Y):
     return torch.stack([nested_q2(X, Y, SEED + r) for r in range(N_STAT_REPEATS)]).median(0).values
 
 
+# ADJUST_ACQ=1: residualize targets on log voxel volume and log physical mask volume (as in extra_analyses_letter.py)
+ADJUST_ACQ = os.environ.get("ADJUST_ACQ") == "1"
+if ADJUST_ACQ:
+    sys.path.insert(0, os.environ.get("DGC_DIR", os.path.expanduser("~/dgc_ijms")))
+    import data as dgc
+    cov = dgc.radiomics_myocardium().reindex([dgc._norm_id(i) for i in df.index.astype(str)])
+    Z_acq = np.c_[np.ones(len(cov)), np.log(cov.voxel_vol_mm3.values), np.log(cov.mask_vol_ml.values)]
+
+
+def acq_adjust(y):
+    return y - Z_acq @ np.linalg.lstsq(Z_acq, y, rcond=None)[0] if ADJUST_ACQ else y
+
+
 g = torch.Generator().manual_seed(SEED)
 rows = []
 for term, feat, branch in TABLE1:
@@ -109,7 +123,7 @@ for term, feat, branch in TABLE1:
     prots = curated[pw]["proteins"]
     X = torch.tensor(df[prots].apply(ns["robust_numeric"]).fillna(df[prots].median()).values,
                      dtype=DT, device=device)
-    y = torch.tensor((y_raw if branch == "raw" else y_resid)[features.index(feat)],
+    y = torch.tensor(acq_adjust((y_raw if branch == "raw" else y_resid)[features.index(feat)].astype(float)),
                      dtype=DT, device=device)
     obs = statistic(X, y.unsqueeze(0)).item()
     null = []
@@ -124,5 +138,5 @@ for term, feat, branch in TABLE1:
     print(rows[-1], flush=True)
 
 out = pd.DataFrame(rows)
-out.to_csv("results/reanalysis_letter_perm_gpu.csv", index=False)
+out.to_csv("results/reanalysis_letter_perm_gpu_acqadj.csv" if ADJUST_ACQ else "results/reanalysis_letter_perm_gpu.csv", index=False)
 print(out.to_string(index=False))
