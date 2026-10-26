@@ -63,7 +63,7 @@ for _, r in tab.iterrows():
         f"{r['Q2_nested_median']:.2f} ({float(lo):.2f} to {float(hi):.2f})",
         f"{r['share_nested_pos'] * 100:.0f}%", fmt_p(r["p_perm_nested"]),
     ])
-    robust.append(r["Q2_nested_median"] >= 0.15 and r["p_perm_nested"] < 0.001)
+    robust.append(float(lo) > 0)  # nested Q2 interquartile range above zero
 
 header = ["Features", "Pathway", "Radiomic feature", "Screening\nQ²", "Screen-wide\nadjusted P",
           "Nested Q², median\n(IQR)", "Repeats\nwith Q²>0", "Permutation\nP"]
