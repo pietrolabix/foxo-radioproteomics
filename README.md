@@ -3,7 +3,7 @@
 Analysis code for:
 
 > Łaba P, Kacperska M, Mazuruk M, Paterek A, Załęska-Kocięcka M, Michałowska I, Leszek P, Mączewski M.
-> *Circulating Efferocytosis Proteins Are Associated With Volume-Independent Myocardial CT Texture in End-Stage Heart Failure.* (submitted)
+> *Machine Learning–Based Integrative Radioproteomics Links Circulating Efferocytosis and FoxO Signaling to Myocardial CT Texture in End-Stage Heart Failure.* (submitted)
 
 The pipeline links CT radiomics of the left ventricular myocardium with plasma proteomics (Olink Explore 5400+) in 42 patients with end-stage heart failure with reduced ejection fraction evaluated for LVAD implantation. Circulating proteins are grouped into KEGG pathways, and each pathway is tested as a predictor of each radiomic feature with partial least squares (PLS) regression.
 
