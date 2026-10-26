@@ -43,6 +43,7 @@ Run from the repository root, in this order.
 | `07_revalidation_nested_cv.py` | Repeated nested cross-validation of the screened models (CPU) | `results/reanalysis_letter_results.csv` |
 | `08_revalidation_permutations_gpu.py` | Permutation test of the whole nested pipeline on MPS/CUDA | `results/reanalysis_letter_perm_gpu.csv` |
 | `09_figure_research_letter.py` | Combined figure for the research letter (VIP network + results table) | `results/Figure1.pdf/png/tiff` |
+| `10_extra_analyses_specificity_acquisition_tissue_clinical.py` | Random protein-set null, adjustment for voxel and myocardial volume, myocardial tissue proteome, clinical correlates | `results/extra_analyses_letter.xlsx` |
 
 Scripts 07–09 reuse the data-loading part of scripts 05 and 06, so the cohort, pathway definitions and targets are identical across analyses.
 
