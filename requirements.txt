@@ -1,0 +1,11 @@
+numpy
+pandas
+openpyxl
+scipy
+scikit-learn
+statsmodels
+matplotlib
+beautifulsoup4
+tqdm
+torch
+pillow
