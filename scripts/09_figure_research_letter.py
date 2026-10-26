@@ -27,6 +27,9 @@ src, n_title = re.subn(r'\n# --- Title ---\n.*?transform=ax\.transAxes\)\n.*?tra
 src = src.replace('ax.text(model_x - 0.18 + box_w/2, y + 0.005, lab,', 'ax.text(model_x - 0.18 + box_w/2, y, lab,')
 src = src.replace('"Figure_VIP_Network.', f'"{NETWORK_BASENAME}.')
 src = src.replace('cm.get_cmap("RdYlBu_r")', 'matplotlib.colormaps["RdYlBu_r"]')
+# Widen model boxes to the left so the longest label fits; the right edge (edge origin) stays put
+src = src.replace("box_w, box_h = 0.32, 0.045", "box_w, box_h = 0.34, 0.045")
+src = src.replace("model_x - 0.18", "model_x - 0.20")
 assert (n_edge, n_q2, n_title) == (1, 1, 1), (n_edge, n_q2, n_title)
 exec(compile(src, "06_figure_vip_network.py[patched]", "exec"), {"__name__": "network"})
 
